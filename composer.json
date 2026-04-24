@@ -1,0 +1,46 @@
+{
+    "name": "puzl/pzrequest",
+    "description": "Cliente HTTP REST fluente da Puzl (Guzzle adapter).",
+    "type": "library",
+    "license": "proprietary",
+    "require": {
+        "php": "^8.1",
+        "guzzlehttp/guzzle": "^7.0",
+        "illuminate/support": "^10.0|^11.0|^12.0"
+    },
+    "require-dev": {
+        "illuminate/config": "^10.0|^11.0|^12.0",
+        "illuminate/container": "^10.0|^11.0|^12.0",
+        "phpunit/phpunit": "^10.5",
+        "vlucas/phpdotenv": "^5.4"
+    },
+    "autoload": {
+        "psr-4": {
+            "Puzl\\PzRequest\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Puzl\\PzRequest\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "phpunit -c phpunit.xml.dist",
+        "test:coverage": "XDEBUG_MODE=coverage phpunit -c phpunit.xml.dist --coverage-text --coverage-html=coverage"
+    },
+    "config": {
+        "sort-packages": true,
+        "platform": {
+            "php": "8.2.26"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Puzl\\PzRequest\\Laravel\\PzRequestServiceProvider"
+            ]
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}
