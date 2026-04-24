@@ -22,3 +22,7 @@ Thumbs.db
 *.cache
 .php_cs.cache
 .php-cs-fixer.cache
+
+/tasks/
+/templates/
+/.cursor/rules/local.mdc
