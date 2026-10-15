@@ -9,18 +9,48 @@ de testes ≥ 90%.
 - **Auto-reset** — `prepare()` é chamado em `finally` no `execute()`; estado
   nunca vaza entre chamadas.
 - **Sem credenciais em URL** — Bearer/Basic vão sempre em header.
-- **Plug-and-play em Laravel 10/11/12** via auto-discovery do Service Provider.
+- **Plug-and-play em Laravel 10/11/12/13** via auto-discovery do Service Provider.
 
 ---
 
 ## Instalação
 
-```bash
-composer require puzl/pzrequest
+O repositório `PuzlPlace/PzRequest` é público, mas o pacote **não está no Packagist**: é distribuído pelo próprio
+repositório Git. São dois passos.
+
+### 1. Declare o repositório
+
+No `composer.json` da aplicação, no mesmo nível de `require` (já tem outros pacotes `Pz*`? acrescente mais um objeto):
+
+```json
+"repositories": [
+    {
+        "type": "vcs",
+        "url": "https://github.com/PuzlPlace/PzRequest.git"
+    }
+]
 ```
 
-Auto-discovery do Service Provider em Laravel 10/11/12 — não precisa
-registrar manualmente.
+### 2. Instale por versão
+
+```bash
+composer require puzl/pzrequest:^1.0
+```
+
+| Restrição | O que instala |
+|---|---|
+| `^1.0` | última `1.x`: correções e novidades compatíveis. **Recomendado.** |
+| `~1.2.0` | última `1.2.x`: só correções de patch. |
+| `v1.2.3` | exatamente essa tag. |
+| `dev-production` | topo da branch, sem versão. Modo legado: evite. |
+
+Auto-discovery do Service Provider em Laravel 10/11/12/13 — não precisa registrar manualmente.
+
+### Versionamento
+
+Não há versão escrita em lugar nenhum deste pacote: a fonte é a tag do Git. Toda entrega na branch `production` que
+passa no CI gera sozinha a próxima tag *patch* e o release (`.github/workflows/tests.yml`, job `Release`). Para subir
+*minor* ou *major*, crie a tag na mão uma vez (`git tag v1.1.0 && git push origin v1.1.0`); o cálculo segue dela.
 
 Para customizar o adapter HTTP padrão:
 
