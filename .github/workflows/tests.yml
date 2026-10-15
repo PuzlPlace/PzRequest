@@ -1,0 +1,94 @@
+name: Tests
+
+on:
+  push:
+    branches: [master, production]
+  pull_request:
+  workflow_dispatch:
+
+# Só leitura por padrão; o job de release pede escrita para si.
+permissions:
+  contents: read
+
+jobs:
+  phpunit:
+    name: PHP ${{ matrix.php }} (${{ matrix.dependencies }})
+    runs-on: ubuntu-latest
+
+    # O pacote promete PHP ^8.1 e Laravel 10–13. Como o composer.lock não é
+    # versionado, sem matriz a CI só veria as versões mais novas.
+    # `lowest` resolve o piso de cada dependência; `highest`, o teto (Laravel 13
+    # só entra com PHP 8.3).
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.1', '8.2', '8.3']
+        dependencies: [lowest, highest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: mbstring, xml, dom
+          coverage: none
+
+      - name: Cache Composer packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.composer/cache
+          key: composer-${{ runner.os }}-${{ matrix.php }}-${{ matrix.dependencies }}-${{ hashFiles('**/composer.json') }}
+          restore-keys: composer-${{ runner.os }}-${{ matrix.php }}-${{ matrix.dependencies }}-
+
+      - name: Install dependencies
+        run: composer update --prefer-dist --no-interaction --no-progress ${{ matrix.dependencies == 'lowest' && '--prefer-lowest --prefer-stable' || '' }}
+
+      # --fail-on-skipped: um teste que passe a se pular sozinho (dependência
+      # ausente, por exemplo) sairia como verde.
+      - name: Run test suite
+        run: vendor/bin/phpunit -c phpunit.xml.dist --fail-on-skipped
+
+  # Entrega em production com CI verde vira versão sozinha. A versão nunca é
+  # escrita à mão: nem no commit, nem no composer.json — sai da última tag.
+  release:
+    name: Release
+    needs: phpunit
+    if: github.ref == 'refs/heads/production'
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    # Serializa pushes seguidos; dois jobs simultâneos calculariam a mesma tag.
+    concurrency:
+      group: release
+      cancel-in-progress: false
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - id: bump
+        name: Compute next tag
+        run: |
+          last=$(git tag -l 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | head -n1)
+          if [ -z "$last" ]; then
+            next="v1.0.0"
+          else
+            IFS=. read -r maj min pat <<< "${last#v}"
+            next="v$maj.$min.$((pat + 1))"
+          fi
+          echo "tag=$next" >> "$GITHUB_OUTPUT"
+
+      # Sempre patch. Para subir minor/major, criar a tag na mão uma vez
+      # (git tag v1.1.0 && git push origin v1.1.0) — o cálculo segue dela.
+      - name: Create tag and release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${{ steps.bump.outputs.tag }}" \
+            --target "$GITHUB_SHA" \
+            --title "${{ steps.bump.outputs.tag }}" \
+            --generate-notes
